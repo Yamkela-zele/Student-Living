@@ -66,6 +66,26 @@
   .modal-panel { @apply max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl; }
 }
 
+@keyframes auth-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes auth-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(10px, -14px, 0); }
+}
+
+.animate-auth-enter { animation: auth-enter 650ms cubic-bezier(.2, .75, .25, 1) both; }
+.auth-orbit { animation: auth-float 9s ease-in-out infinite; }
+.auth-orbit-delayed { animation-delay: -4.5s; }
+.auth-card {
+  border-color: rgb(255 255 255 / 85%);
+  box-shadow: 0 24px 80px rgb(16 31 64 / 10%), 0 2px 8px rgb(16 31 64 / 4%);
+}
+.auth-card .input { transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+.auth-card .input:focus { background-color: white; box-shadow: 0 0 0 4px rgb(212 175 87 / 16%); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

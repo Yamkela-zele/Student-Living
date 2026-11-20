@@ -1,6 +1,16 @@
 # Feature API contracts
 
-The current application is a React frontend. These contracts describe backend work required to make the requested features persistent, secure, and production-ready. Demo mode uses temporary in-memory responses and is not a substitute for authorization, billing, signing, or notification services.
+The app has a Supabase-backed baseline for its current authentication, marketplace, profile, application, booking, review, notification, provider, and admin screens. These contracts describe the current behavior plus follow-on features that still require implementation. Demo mode uses temporary sample responses and is not a substitute for authorization, billing, signing, or notification services.
+
+## Current Supabase-backed flows
+
+- Email/password signup, confirmation, login, reset, and profile retrieval use Supabase Auth and `profiles`. Signup metadata can select only student or provider; system roles are assigned by an active system administrator.
+- Public approved-property search, property details, campus/university data, favorites, and saved searches use RLS-protected tables.
+- Property media, provider/company verification documents, property/compliance documents, and student application documents are stored in Supabase Storage with private document access and short-lived signed downloads.
+- Students can submit applications and supporting documents, cancel eligible applications, confirm an approved application through a transaction-safe booking RPC, submit booking-linked reviews, and report a booking-related complaint.
+- Providers can manage their own properties and rooms, review applications, update room availability, and respond to reviews. Administrators can moderate providers, properties, applications, complaints, and review flags within their authorization scope.
+- Notifications, dashboard metrics, reports, audit logs, university/campus management, system settings, and system-admin user invitations are backed by Supabase. Privileged account invitations and role/access changes use the `manage-user` Edge Function.
+- RLS and database triggers validate ownership, role, campus scope, application/booking transitions, required evidence for approval, private document paths, and audit events. See [the additive backend migration](../supabase/migrations/20261119000001_application_backend.sql) and [Supabase setup](../SUPABASE_SETUP.md).
 
 ## Phase 1 — Discovery
 
@@ -15,6 +25,7 @@ The current application is a React frontend. These contracts describe backend wo
 
 - `POST /properties/:id/reviews/:reviewId/responses` records one provider response per review; `POST /reviews/:id/flags` creates a moderation case. `GET /admin/review-flags` lists cases, and `PATCH /admin/review-flags/:id` records dismissal or `/hide-review` hides the review. All moderation actions are audited.
 - Property safety metadata includes certificate type, issuer, issue/expiry dates, verification status, and administrator inspection reports. Private documents are accessed only through authenticated document endpoints.
+- Provider company verification documents are uploaded separately through multipart `PUT /profile` fields: `identityDocuments`, `proxyLetters`, `proofOfAddress`, `companyRegistration`, `bbbeeCertificate`, `sarsTaxDocuments`, and `businessBankConfirmation`. Property creation and updates use their own multipart fields for `photos` (multiple images), `videos` (one optional MP4, WebM, or MOV video, at least 300 seconds), `zoningCertificate`, `proofOfOwnership`, `approvedBuildingPlans`, `occupancyCertificate`, `fireComplianceCertificate`, `electricalComplianceCertificate`, `propertyBankConfirmation`, `securityManagementPlan`, `pestControlCertificate`, `wasteManagementPlan`, `psiraCertificates`, `healthSafetyEmergencyPlan`, and `cleaningContracts`. Fields configured for multiple files may contain repeated file parts. The current browser checks video duration and the database rejects media rows reporting less than 300 seconds, but the duration is client-reported; independently validate the media server-side before production. At least one applicable property document is required before a listing can be approved; attachments retain their document type for reviewers.
 - `POST /admin/properties/:id/reverification` records a completed review only after evidence is checked; `GET /admin/reverification-due` returns properties approaching or past the 12-month deadline. The server must validate evidence, update due dates, and enforce publication policy.
 - Provider accreditation is structured and evidence-backed (for example NSFAS), with issuer, reference, status, and expiry.
 

@@ -9,77 +9,63 @@ import { useAuth } from '../../hooks/useAuth'
 import type { Entity, Property } from '../../types'
 import { fmtMoney, label } from '../../utils/format'
 
-const hero = 'https://images.unsplash.com/photo-1784359065403-93da31c36115?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1bml2ZXJzaXR5JTIwc3R1ZGVudHMlMjBzdHVkeW5nJTIwdG9nZXRoZXIlMjBsaWJyYXJ5fGVufDF8fHx8MTc5NTA3MDU0MXww&ixlib=rb-4.1.0&q=80&w=1080'
 type PropertyResponse = { properties: Property[] }
 export function Home() {
   const { data, loading, error, reload } = useFetch<PropertyResponse>('/properties', { limit: 3 })
   return (
     <>
-      <section className="relative overflow-hidden bg-canvas pb-16 pt-28 sm:pb-20 sm:pt-32 lg:pb-24 lg:pt-36">
-        <div aria-hidden="true" className="absolute -left-28 top-36 size-72 rounded-full border border-gold/30 sm:size-96" />
-        <div aria-hidden="true" className="absolute -left-16 top-48 size-56 rounded-full border border-gold/20 sm:size-72" />
-        <div className="container relative grid items-center gap-12 lg:grid-cols-[1fr_0.92fr] lg:gap-16">
+      <section className="relative isolate overflow-hidden bg-navy pb-16 pt-28 sm:pb-20 sm:pt-32 lg:pb-24 lg:pt-36">
+        <video
+          className="absolute inset-0 -z-20 size-full object-cover"
+          src="/hero.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-navy/90 via-navy/75 to-navy/50" />
+        <div aria-hidden="true" className="absolute -left-28 top-36 -z-10 size-72 rounded-full border border-white/15 sm:size-96" />
+        <div aria-hidden="true" className="absolute -left-16 top-48 -z-10 size-56 rounded-full border border-gold/25 sm:size-72" />
+        <div className="container relative">
           <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-navy/10 bg-white/80 px-3 py-2 text-xs font-bold uppercase tracking-[.16em] text-navy">
-              <Sparkles size={15} className="text-gold-dark" /> Student living, made simpler
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold uppercase tracking-[.16em] text-white backdrop-blur-md">
+              <Sparkles size={15} className="text-gold" /> Student living, made simpler
             </div>
-            <h1 className="mt-6 text-[2.8rem] font-black leading-[.98] tracking-[-.06em] text-navy sm:text-6xl lg:text-[3.75rem]">
+            <h1 className="mt-6 text-[2.8rem] font-black leading-[.98] tracking-[-.06em] text-white sm:text-6xl lg:text-[3.75rem]">
               A place to land.<br />
-              <span className="font-serif font-medium italic text-gold-dark">A future to build.</span>
+              <span className="font-serif font-medium italic text-gold">A future to build.</span>
             </h1>
-            <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">
+            <p className="mt-6 max-w-lg text-base leading-7 text-white/85 sm:text-lg">
               Find a home close to campus, apply with confidence, and keep every part of your stay in one place.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link className="btn btn-navy rounded-full px-6" to="/register/student">
                 Find your next home <ArrowRight size={18} />
               </Link>
-              <Link className="btn rounded-full border border-navy/20 bg-white/60 px-6 text-navy hover:bg-white" to="/register/provider">
+              <Link className="btn rounded-full border border-white/50 bg-white/10 px-6 text-white backdrop-blur-sm hover:bg-white/20" to="/register/provider">
                 List a property <ArrowUpRight size={18} />
               </Link>
             </div>
-            <div className="mt-9 flex items-center gap-3 text-sm text-slate-600">
-              <span className="grid size-9 place-items-center rounded-full bg-gold/20 text-gold-dark"><MapPin size={17} /></span>
-              <span>Made for students across <strong className="text-navy">TUT campuses</strong></span>
+            <div className="mt-9 flex items-center gap-3 text-sm text-white/80">
+              <span className="grid size-9 place-items-center rounded-full border border-white/20 bg-white/10 text-gold"><MapPin size={17} /></span>
+              <span>Made for students across <strong className="text-white">TUT campuses</strong></span>
             </div>
-          </div>
-          <div className="relative mx-auto w-full max-w-[34rem] lg:mr-0">
-            <div className="absolute -right-3 -top-4 z-10 rounded-full bg-gold px-4 py-2 text-[10px] font-extrabold uppercase tracking-[.18em] text-navy shadow-lg sm:-right-5 sm:top-8 sm:px-5 sm:py-3">
-              Find your footing
-            </div>
-            <div className="relative h-[25rem] overflow-hidden rounded-[2rem] rounded-bl-[7rem] bg-navy shadow-[0_30px_70px_rgba(16,31,64,.2)] sm:h-[31rem] sm:rounded-[2.5rem] sm:rounded-bl-[9rem]">
-              <img src={hero} alt="Students studying together in a university library" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-navy/75 via-transparent to-navy/10" />
-              <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-white sm:bottom-8 sm:left-8 sm:right-8">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[.2em] text-gold">Your next chapter</p>
-                  <p className="mt-2 text-2xl font-extrabold sm:text-3xl">Starts with home.</p>
-                </div>
-                <span className="mb-1 grid size-11 place-items-center rounded-full border border-white/40 bg-white/10 backdrop-blur"><ArrowUpRight size={21} /></span>
-              </div>
-            </div>
-            <div className="absolute -bottom-7 left-4 flex max-w-[19rem] items-center gap-3 rounded-2xl border border-white bg-white p-4 shadow-xl sm:-left-10 sm:bottom-8 sm:max-w-[20rem] sm:p-5">
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ShieldCheck size={23} /></span>
-              <div>
-                <p className="text-sm font-extrabold text-navy">A little more peace of mind</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">Explore accommodation reviewed for student living.</p>
-              </div>
-            </div>
-            <div aria-hidden="true" className="absolute -bottom-12 -right-6 -z-0 size-32 rounded-full bg-gold/25 blur-2xl sm:-right-10 sm:size-44" />
           </div>
         </div>
-        <div className="container relative mt-14 grid grid-cols-3 border-t border-navy/10 pt-5 text-center sm:mt-20 sm:pt-7">
+        <div className="container relative mt-14 grid grid-cols-3 border-t border-white/25 pt-5 text-center sm:mt-20 sm:pt-7">
           <div>
-            <p className="text-lg font-black text-navy sm:text-2xl">Find</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.14em] text-slate-500 sm:text-xs">your place</p>
+            <p className="text-lg font-black text-white sm:text-2xl">Find</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.14em] text-white/65 sm:text-xs">your place</p>
           </div>
-          <div className="border-x border-navy/10">
-            <p className="text-lg font-black text-navy sm:text-2xl">Apply</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.14em] text-slate-500 sm:text-xs">with confidence</p>
+          <div className="border-x border-white/25">
+            <p className="text-lg font-black text-white sm:text-2xl">Apply</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.14em] text-white/65 sm:text-xs">with confidence</p>
           </div>
           <div>
-            <p className="text-lg font-black text-navy sm:text-2xl">Settle</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.14em] text-slate-500 sm:text-xs">into student life</p>
+            <p className="text-lg font-black text-white sm:text-2xl">Settle</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.14em] text-white/65 sm:text-xs">into student life</p>
           </div>
         </div>
       </section>

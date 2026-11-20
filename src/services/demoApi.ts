@@ -365,6 +365,14 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const email = String((body as { email?: string }).email || '')
     const user = Object.values(demoUsers).find((candidate) => candidate.email === email)
     if (user) data = { token: `demo-${user.role}`, user }
+  } else if (method === 'post' && path === '/auth/forgot-password') {
+    data = { success: true, message: 'Demo password reset instructions are disabled.' }
+  } else if (method === 'post' && path === '/auth/reset-password') {
+    data = { success: true, message: 'Demo password reset is disabled.' }
+  } else if (method === 'put' && path === '/profile') {
+    const user = currentUser()
+    if (user) Object.assign(user, formValues)
+    data = { user }
   } else if (method === 'patch') {
     const values = body as Record<string, unknown>
     const entity = [...applications, ...bookings, ...sampleProperties, ...providers, ...complaints, ...reviews, ...reviewFlags].find((item) => item.id === resourceId)

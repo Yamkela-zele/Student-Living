@@ -1,9 +1,11 @@
 import axios, { AxiosError } from 'axios'
 import { demoAdapter, demoMode } from './demoApi'
+import { supabaseAdapter } from './supabaseAdapter'
+import { supabaseEnabled } from '../integrations/supabase/client'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  ...(demoMode ? { adapter: demoAdapter } : {}),
+  ...(demoMode ? { adapter: demoAdapter } : supabaseEnabled ? { adapter: supabaseAdapter } : {}),
 })
 
 api.interceptors.request.use((config) => {
@@ -27,9 +29,15 @@ export function errorMessage(error: unknown) {
   if (!navigator.onLine) return 'You appear to be offline. Check your connection and try again.'
   if (axios.isAxiosError(error)) {
     if (!error.response) return 'Cannot reach the server. Please try again shortly.'
-    return String(error.response.data?.message || 'The request could not be completed.')
+    const message = String(error.response.data?.message || 'The request could not be completed.')
+    if (/rate limit|too many/i.test(message)) return 'Too many requests. Please wait a few minutes before trying again.'
+    return message
   }
-  return error instanceof Error ? error.message : 'Something went wrong.'
+  if (error instanceof Error) {
+    if (/rate limit|too many/i.test(error.message)) return 'Too many requests. Please wait a few minutes before trying again.'
+    return error.message
+  }
+  return 'Something went wrong.'
 }
 
 export async function runAction<T>(fn: () => Promise<T>, after?: (value: T) => void) {

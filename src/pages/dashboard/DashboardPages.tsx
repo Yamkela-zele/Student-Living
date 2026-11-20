@@ -125,16 +125,44 @@ export function ReviewModerationQueue() {
     {loading ? <Loader /> : error ? <ErrorBox message={error} retry={reload} /> : !flags.length ? <EmptyState title="No flagged reviews" /> : <div className="grid gap-4 lg:grid-cols-2">{flags.map((flag) => <article className="card" key={flag.id}><div className="flex items-start justify-between gap-3"><h2 className="font-bold">{String(flag.review?.property?.name || 'Property review')}</h2><StatusBadge status={flag.status} /></div><p className="mt-2 text-sm">{String(flag.review?.comment || flag.review?.name || 'Review unavailable')}</p><p className="mt-3 text-sm text-slate-600"><b>Flag reason:</b> {String(flag.reason || 'Not provided')}</p><p className="mt-1 text-xs text-slate-500">Reported {fmtDate(flag.createdAt)}</p>{flag.status === 'OPEN' && <div className="mt-4 flex flex-wrap gap-2"><Button className="btn-outline" disabled={busyId === flag.id} onClick={() => void update(flag, false)}>Dismiss flag</Button><Button className="bg-red-700 text-white" disabled={busyId === flag.id} onClick={() => void update(flag, true)}>Hide review</Button></div>}</article>)}</div>}
   </Page>
 }
+const providerCompanyDocuments = [
+  {
+    title: 'Company documents',
+    documents: [
+      { name: 'identityDocuments', label: 'Proof of identity', hint: 'Certified ID copies for owners and directors.', multiple: true },
+      { name: 'proxyLetters', label: 'Proxy letters', hint: 'Upload if someone is acting on behalf of an owner.' },
+      { name: 'proofOfAddress', label: 'Proof of address', hint: 'Utility bill, lease agreement, or SARS document.' },
+      { name: 'companyRegistration', label: 'Company registration', hint: 'CIPC documents for companies, NPCs, trusts, or other entities.' },
+      { name: 'bbbeeCertificate', label: 'B-BBEE certificate or affidavit', hint: 'EME/QSE affidavit, CIPC certificate, or SANAS-accredited certificate.' },
+      { name: 'sarsTaxDocuments', label: 'SARS tax clearance and details', hint: 'Tax clearance certificate or applicable SARS documents.' },
+      { name: 'businessBankConfirmation', label: 'Business bank confirmation', hint: 'For a business account, include CIPC proof that the property owner is a director.' },
+    ],
+  },
+]
+
 export function Profile({ provider = false }: { provider?: boolean }) {
   const { user, refresh } = useAuth()
   const [status, setStatus] = useState('')
+  const { data: universityData } = useFetch<{ universities: Array<{ id: string; name: string; campuses?: Array<{ id: string; name: string }> }> }>('/universities')
+  const campus = user?.campus
+  const selectedCampusId = user?.campusId || (campus && typeof campus === 'object' && 'id' in campus ? campus.id : '')
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setStatus('Saving…')
-    try { await api.put('/profile', Object.fromEntries(new FormData(e.currentTarget))); await refresh(); setStatus('Profile saved.') }
+    try {
+      const form = new FormData(e.currentTarget)
+      await api.put('/profile', provider ? form : Object.fromEntries(form))
+      await refresh()
+      setStatus('Profile saved.')
+    }
     catch (err) { setStatus(errorMessage(err)) }
   }
   return <Page title="My profile" text="Keep your personal and contact details up to date."><form className="card grid max-w-3xl gap-4 sm:grid-cols-2" onSubmit={submit}>
     {(provider ? ['firstName', 'lastName', 'phone', 'businessName'] : ['firstName', 'lastName', 'phone', 'course', 'yearOfStudy']).map((n) => <label className="label" key={n}>{label(n.replace(/([A-Z])/g, '_$1'))}<input className="input mt-2" name={n} defaultValue={String(user?.[n] || '')} /></label>)}
+    {!provider && <label className="label">Campus<select className="input mt-2" name="campusId" defaultValue={String(selectedCampusId)}><option value="">Select your campus</option>{(universityData?.universities || []).map((university) => <optgroup key={university.id} label={university.name}>{university.campuses?.map((campus) => <option key={campus.id} value={campus.id}>{campus.name}</option>)}</optgroup>)}</select></label>}
+    {provider && <div className="sm:col-span-2 space-y-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+      <div><h2 className="text-lg font-bold">Company verification documents</h2><p className="mt-1 text-sm leading-6 text-slate-600">Upload or update business verification documents here. Property-specific compliance documents are provided separately for each listing.</p></div>
+      {providerCompanyDocuments.map((group) => <section key={group.title}><h3 className="mb-3 text-sm font-extrabold uppercase tracking-wide text-navy">{group.title}</h3><div className="grid gap-4 sm:grid-cols-2">{group.documents.map((document) => <label className="label" key={document.name}>{document.label}<span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{document.hint}</span><input className="input mt-2 bg-white" type="file" name={document.name} multiple={document.multiple} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" /></label>)}</div></section>)}
+    </div>}
     <label className="label">Email<input disabled className="input mt-2" value={user?.email || ''} /></label>{status && <p role="status" className="sm:col-span-2">{status}</p>}<Button className="btn-gold sm:col-span-2 sm:w-fit"><Save size={18} /> Save changes</Button>
   </form></Page>
 }
@@ -188,6 +216,7 @@ export function ResourcePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const config = resources[pathname] || resources['/dashboard/my-applications']
   const { data, loading, error, reload } = useFetch<any>(config.endpoint)
+  const { data: universityData } = useFetch<{ universities: Array<{ id: string; name: string }> }>('/universities')
   const allItems = collection(data, config.key)
   const selectedPropertyId = searchParams.get('propertyId') || ''
   const items = config.kind === 'rooms' && selectedPropertyId
@@ -297,7 +326,7 @@ export function ResourcePage() {
     <Modal open={Boolean(bookingTarget)} title="Confirm booking" onClose={() => setBookingTarget(null)}>{bookingTarget && <BookingForm busy={busy} onSubmit={async (dates) => { setBusy(true); setActionError(''); try { await api.post(`/applications/${encodeURIComponent(String(bookingTarget.id))}/book`, dates); setBookingTarget(null); setActionMessage('Booking confirmed.'); reload() } catch (err) { setActionError(errorMessage(err)) } finally { setBusy(false) } }} />}</Modal>
     <Modal open={Boolean(bookingDetails) && !bookingAction} title="Booking details" onClose={() => setBookingDetails(null)}>{bookingDetails && <div className="mt-5 space-y-3"><p><b>Reference:</b> {String(bookingDetails.reference || bookingDetails.id)}</p><p><b>Property:</b> {String(bookingDetails.property?.name || '—')}</p><p><b>Room:</b> {String(bookingDetails.room?.number || '—')}</p><p><b>Period:</b> {fmtDate(bookingDetails.startDate)} – {fmtDate(bookingDetails.endDate)}</p><p><b>Status:</b> {label(bookingDetails.status)}</p><div className="flex flex-wrap gap-2 pt-3"><Button className="btn-outline" onClick={() => setBookingAction('issue')}>Report an issue</Button>{!bookingDetails.review && !bookingDetails.reviewed && !bookingDetails.reviewedAt && <Button className="btn-gold" onClick={() => setBookingAction('review')}>Write review</Button>}</div></div>}</Modal>
     <Modal open={Boolean(bookingDetails) && Boolean(bookingAction)} title={bookingAction === 'issue' ? 'Report an issue' : 'Write a review'} onClose={() => setBookingAction(null)}><form className="mt-5 grid gap-4" onSubmit={submitBookingAction}>{bookingAction === 'issue' ? <Field name="message" required textarea /> : <><Field name="overallRating" required type="number" min="1" max="5" /><Field name="cleanlinessRating" required type="number" min="1" max="5" /><Field name="safetyRating" required type="number" min="1" max="5" /><Field name="facilitiesRating" required type="number" min="1" max="5" /><Field name="managementRating" required type="number" min="1" max="5" /><Field name="comment" textarea /></>}<div className="flex justify-end gap-2"><Button type="button" className="btn-outline" onClick={() => setBookingAction(null)}>Back</Button><Button className="btn-gold" disabled={bookingBusy}>{bookingBusy ? 'Submitting…' : 'Submit'}</Button></div></form></Modal>
-    <Modal open={formOpen} title={config.kind === 'rooms' ? `Add room${roomProperty ? ` — ${displayName(roomProperty)}` : ''}` : config.kind === 'users' ? 'Create university admin' : 'Add university'} onClose={() => { setFormOpen(false); setRoomProperty(null) }}><form className="mt-5 grid gap-4" onSubmit={submitForm}>{config.kind === 'rooms' ? <><Field name="number" required /><Field name="type" required select options={['SINGLE', 'SHARED']} /><Field name="price" type="number" required /><Field name="occupancyLimit" type="number" required /></> : config.kind === 'users' ? <><Field name="firstName" required /><Field name="lastName" required /><Field name="email" type="email" required /><Field name="phone" type="tel" required /><Field name="password" type="password" required /></> : <><Field name="name" required /><Field name="code" /><Field name="city" /></>}<div className="flex justify-end gap-3"><Button type="button" className="btn-outline" onClick={() => setFormOpen(false)}>Cancel</Button><Button disabled={busy} className="btn-gold">{busy ? 'Saving…' : 'Save'}</Button></div></form></Modal>
+    <Modal open={formOpen} title={config.kind === 'rooms' ? `Add room${roomProperty ? ` — ${displayName(roomProperty)}` : ''}` : config.kind === 'users' ? 'Invite university admin' : 'Add university'} onClose={() => { setFormOpen(false); setRoomProperty(null) }}><form className="mt-5 grid gap-4" onSubmit={submitForm}>{config.kind === 'rooms' ? <><Field name="number" required /><Field name="type" required select options={['SINGLE', 'SHARED']} /><Field name="price" type="number" required /><Field name="occupancyLimit" type="number" required /></> : config.kind === 'users' ? <><Field name="firstName" required /><Field name="lastName" required /><Field name="email" type="email" required /><Field name="phone" type="tel" required /><label className="label">University<select className="input mt-2" name="universityId" required defaultValue=""><option value="">Select university</option>{universityData?.universities.map((university) => <option key={university.id} value={university.id}>{university.name}</option>)}</select></label><p className="text-xs text-slate-500">The admin will receive an email invitation to set their password.</p></> : <><Field name="name" required /><Field name="code" /><Field name="city" /></>}<div className="flex justify-end gap-3"><Button type="button" className="btn-outline" onClick={() => setFormOpen(false)}>Cancel</Button><Button disabled={busy} className="btn-gold">{busy ? 'Saving…' : 'Save'}</Button></div></form></Modal>
   </Page>
 }
 function itemActiveTitle(item: Entity) { return item.isActive === false ? 'Activate user?' : 'Deactivate user?' }
@@ -353,6 +382,27 @@ function BookingForm({ busy, onSubmit }: { busy: boolean; onSubmit: (dates: { st
 }
 function Field({ name, required, type = 'text', select, options, textarea, min, max }: { name: string; required?: boolean; type?: string; select?: boolean; options?: string[]; textarea?: boolean; min?: string; max?: string }) { const title = label(name.replace(/([A-Z])/g, '_$1')); return <label className="label">{title}{select ? <select name={name} required={required} className="input mt-2">{options?.map((option) => <option key={option} value={option}>{label(option)}</option>)}</select> : textarea ? <textarea name={name} required={required} className="input mt-2 min-h-28" /> : <input name={name} type={type} required={required} min={min} max={max} className="input mt-2" />}</label> }
 
+function getVideoDuration(file: File) {
+  return new Promise<number>((resolve, reject) => {
+    const video = document.createElement('video')
+    const objectUrl = URL.createObjectURL(file)
+    const timeout = window.setTimeout(() => finish(new Error('Could not read the video duration. Try another video file.')), 15000)
+    function finish(error?: Error) {
+      window.clearTimeout(timeout)
+      URL.revokeObjectURL(objectUrl)
+      video.removeAttribute('src')
+      if (error) reject(error)
+      else resolve(video.duration)
+    }
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => Number.isFinite(video.duration)
+      ? finish()
+      : finish(new Error('Could not read the video duration. Try another video file.'))
+    video.onerror = () => finish(new Error('Could not read the video duration. Use a supported MP4, WebM, or MOV file.'))
+    video.src = objectUrl
+  })
+}
+
 export function PropertyForm() {
   const { id } = useParams()
   const edit = Boolean(id)
@@ -363,7 +413,48 @@ export function PropertyForm() {
   const { data: universityData } = useFetch<{ universities: Array<{ id: string; name: string; campuses?: Array<{ id: string; name: string }> }> }>('/universities')
   const property: Entity | undefined = data?.property || data?.data || data
   const [status, setStatus] = useState('')
-  async function submit(e: FormEvent<HTMLFormElement>) { e.preventDefault(); setStatus('Saving…'); try { const form = new FormData(e.currentTarget); if (edit) await api.put(`${propertyApi}/${id}`, form); else await api.post(propertyApi, form); setStatus(edit ? 'Property updated.' : systemAdmin ? 'Property created.' : 'Property submitted for verification. It will remain hidden until approved.') } catch (err) { setStatus(errorMessage(err)) } }
+  const propertyVerificationDocumentGroups = [
+    {
+      title: 'Property & compliance documents',
+      documents: [
+        { name: 'zoningCertificate', label: 'Zoning certificate' },
+        { name: 'proofOfOwnership', label: 'Proof of ownership', hint: 'Title deed, tribal letter, and required mortgage or finance documents.' },
+        { name: 'approvedBuildingPlans', label: 'Approved building plans', hint: 'Plans should match the current building and room layout.' },
+        { name: 'occupancyCertificate', label: 'Occupancy certificate' },
+        { name: 'fireComplianceCertificate', label: 'Fire compliance certificate' },
+        { name: 'electricalComplianceCertificate', label: 'Electrical certificate of compliance (COC)' },
+        { name: 'propertyBankConfirmation', label: 'Property bank confirmation letter' },
+        { name: 'securityManagementPlan', label: 'Security management plan' },
+        { name: 'pestControlCertificate', label: 'Pest control certificate' },
+        { name: 'wasteManagementPlan', label: 'Waste management plan' },
+        { name: 'psiraCertificates', label: 'PSIRA certificates', hint: 'For on-site security personnel or armed response providers.', multiple: true },
+        { name: 'healthSafetyEmergencyPlan', label: 'Health, safety, and emergency readiness plan' },
+        { name: 'cleaningContracts', label: 'Cleaning contracts and registers', multiple: true },
+      ],
+    },
+  ]
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const form = new FormData(e.currentTarget)
+    const video = form.get('videos')
+    if (video instanceof File && video.size > 0) {
+      try {
+        if (await getVideoDuration(video) < 5 * 60) {
+          setStatus('The property video must be at least 5 minutes long.')
+          return
+        }
+      } catch (err) {
+        setStatus(err instanceof Error ? err.message : 'Could not validate the video duration.')
+        return
+      }
+    }
+    if (!edit && !propertyVerificationDocumentGroups.some((group) => group.documents.some(({ name }) => form.getAll(name).some((file) => file instanceof File && file.size > 0)))) {
+      setStatus('Upload at least one applicable property verification document before submitting.')
+      return
+    }
+    setStatus('Saving…')
+    try { if (edit) await api.put(`${propertyApi}/${id}`, form); else await api.post(propertyApi, form); setStatus(edit ? 'Property updated.' : systemAdmin ? 'Property created.' : 'Property submitted for verification. It will remain hidden until approved.') } catch (err) { setStatus(errorMessage(err)) }
+  }
   if (loading) return <Loader />
   if (error) return <ErrorBox message={error} retry={reload} />
   return <Page title={edit ? 'Edit property' : 'Add property'} text={edit ? 'Update listing information and resubmit changes for review when needed.' : systemAdmin ? 'Create a property listing and assign it to a university campus.' : 'New properties stay hidden until a university administrator approves them.'} action={edit && !systemAdmin ? <Link className="btn btn-outline" to={`/dashboard/rooms?propertyId=${encodeURIComponent(String(id))}`}>Manage rooms</Link> : undefined}><form className="card grid gap-4 sm:grid-cols-2" onSubmit={submit}>
@@ -377,7 +468,12 @@ export function PropertyForm() {
     <div className="sm:col-span-2 rounded-xl border border-slate-200 p-4"><h2 className="font-bold">Safety, inspections & accreditation</h2><p className="mt-1 text-sm text-slate-500">Enter current evidence details; uploaded documents are still required for production verification.</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="label flex items-center gap-3"><input type="checkbox" name="fireSafetyCompliant" value="true" defaultChecked={Boolean(property?.fireSafetyCompliant)} /> Fire safety evidence available</label><label className="label">Fire certificate expires<input className="input mt-2" type="date" name="fireCertificateExpiresAt" defaultValue={String(property?.safetyCertificates?.find((certificate: { type: string; expiresAt?: string }) => certificate.type === 'Fire compliance')?.expiresAt || '')} /></label><label className="label flex items-center gap-3"><input type="checkbox" name="electricalSafetyCompliant" value="true" defaultChecked={Boolean(property?.electricalSafetyCompliant)} /> Electrical certificate available</label><label className="label">Electrical certificate expires<input className="input mt-2" type="date" name="electricalCertificateExpiresAt" defaultValue={String(property?.safetyCertificates?.find((certificate: { type: string; expiresAt?: string }) => certificate.type === 'Electrical certificate')?.expiresAt || '')} /></label><label className="label flex items-center gap-3"><input type="checkbox" name="nsfasAccredited" value="true" defaultChecked={property?.accreditation?.status === 'ACCREDITED' || Boolean(property?.nsfasAccredited)} /> NSFAS accredited</label><label className="label">Accreditation expires<input className="input mt-2" type="date" name="accreditationExpiresAt" defaultValue={String(property?.accreditation?.expiresAt || '')} /></label><label className="label">Last inspection date<input className="input mt-2" type="date" name="lastInspectionAt" defaultValue={String(property?.inspectionReports?.[0]?.inspectedAt || '')} /></label><label className="label">Re-verification due<input className="input mt-2" type="date" name="reverificationDueAt" defaultValue={String(property?.reverificationDueAt || '')} /></label></div></div>
     <label className="label">Monthly price<input className="input mt-2" type="number" min="0" name="price" defaultValue={String(property?.price || '')} /></label>
     <label className="label flex items-center gap-3"><input type="checkbox" name="furnished" value="true" defaultChecked={Boolean(property?.furnished)} /> Furnished</label>
-    <label className="label">Photographs<input multiple accept=".jpg,.jpeg,.png" type="file" className="input mt-2" name="photos" /></label><label className="label">Verification documents<input required={!edit && !systemAdmin} multiple accept=".pdf,.jpg,.jpeg,.png" type="file" className="input mt-2" name="documents" /></label>
+    <label className="label">Photographs<span className="mt-1 block text-xs font-normal text-slate-500">Select multiple images at once.</span><input multiple accept="image/jpeg,image/png" type="file" className="input mt-2" name="photos" /></label>
+    <label className="label">Property video (optional)<span className="mt-1 block text-xs font-normal leading-5 text-slate-500">Upload one MP4, WebM, or MOV video that is at least 5 minutes long.</span><input accept="video/mp4,video/webm,video/quicktime" type="file" className="input mt-2" name="videos" /></label>
+    {user?.role === 'PROVIDER' ? <div className="sm:col-span-2 space-y-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+      <div><h2 className="text-lg font-bold">Verification documents</h2><p className="mt-1 text-sm leading-6 text-slate-600">Upload each applicable document in its own field. Files are sent as separately named attachments. At least one document is required to submit a new property; administrators may request additional evidence during review.</p></div>
+      {propertyVerificationDocumentGroups.map((group) => <section key={group.title}><h3 className="mb-3 text-sm font-extrabold uppercase tracking-wide text-navy">{group.title}</h3><div className="grid gap-4 sm:grid-cols-2">{group.documents.map((document) => <label className="label" key={document.name}>{document.label}{document.hint && <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{document.hint}</span>}<input className="input mt-2 bg-white" type="file" name={document.name} multiple={document.multiple} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" /></label>)}</div></section>)}
+    </div> : <label className="label">Verification documents<input required={!edit && !systemAdmin} multiple accept=".pdf,.jpg,.jpeg,.png" type="file" className="input mt-2" name="documents" /></label>}
     {status && <p className="sm:col-span-2" role="status">{status}</p>}<Button className="btn-gold sm:col-span-2 sm:w-fit"><Save size={18} /> {edit && ['REJECTED', 'SUSPENDED'].includes(String(property?.verificationStatus || property?.status).toUpperCase()) ? 'Update & resubmit' : edit ? 'Save changes' : systemAdmin ? 'Create property' : 'Submit for verification'}</Button>
   </form></Page>
 }
