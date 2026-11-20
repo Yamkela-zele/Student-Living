@@ -27,7 +27,7 @@ Do not enable demo mode on a deployment intended for real users. Demo changes ar
 
 ## Render deployment
 
-The included `render.yaml` configures this Vite app as a Render static site. Its build command explicitly installs development dependencies before type-checking, since TypeScript, Vite, and their type definitions are required during the build. If the Render service is configured manually, use `npm ci --include=dev && npm run build` as the build command and `dist` as the publish directory.
+The included `render.yaml` configures this Vite app as a Render static site. Its build command installs the dependencies from `pnpm-lock.yaml` before type-checking. If the Render service is configured manually, use `pnpm install --frozen-lockfile && pnpm run build` as the build command and `dist` as the publish directory.
 
 ## API contract
 
