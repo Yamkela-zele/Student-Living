@@ -20,6 +20,7 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
+    allowedHosts: ['student-living.onrender.com'],
     port: parseInt(process.env.PORT || '4173'),
   },
 })
