@@ -1,20 +1,27 @@
-import { useState, type ReactNode } from 'react'
-import { ArrowUpRight, Bell, Building2, LogOut, Mail, MapPin, Menu, MoonStar, ShieldCheck, X } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { ArrowUpRight, Bell, LogOut, Mail, MapPin, Menu, MoonStar, ShieldCheck, X } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useNotifications } from '../../context/NotificationContext'
 import type { Role } from '../../types'
 import { ConfirmDialog } from '../common/Common'
 
-export function Brand({ light = false }: { light?: boolean }) {
-  return <Link to="/" className={`flex items-center gap-2 font-extrabold tracking-tight ${light ? 'text-white' : 'text-navy'}`}><span className="grid size-10 place-items-center rounded-xl bg-gold text-navy"><Building2 aria-hidden="true" /></span><span>STUDENT <b className="text-gold">LIVING</b></span></Link>
+export function Brand() {
+  return <Link to="/" className="flex shrink-0 items-center" aria-label="Student Living home">
+    <img
+      src="/Student%20Living_%20Study,%20Stay,%20Thrive.png"
+      alt="Student Living — Study, Stay, Thrive"
+      className="h-20 w-auto object-contain"
+    />
+  </Link>
 }
 export function PublicLayout() {
   const { user } = useAuth()
   const { pathname } = useLocation()
   const landing = pathname === '/'
   const [open, setOpen] = useState(false)
-  return <div className="min-h-screen bg-white"><header className={landing ? 'absolute inset-x-0 top-4 z-40 bg-transparent' : 'relative z-40 border-b border-slate-200 bg-white'}><div className={`container flex items-center justify-between ${landing ? 'min-h-16 max-w-6xl gap-3 rounded-full border border-white/30 bg-white/95 px-4 shadow-xl backdrop-blur-md md:px-6' : 'h-20'}`}><Brand /><button className="icon-btn md:hidden" aria-label="Toggle navigation" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button><nav className={`${open ? 'flex' : 'hidden'} ${landing ? 'absolute inset-x-4 top-[4.5rem] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl' : 'absolute inset-x-0 top-20 border-b bg-white p-5'} z-30 flex-col gap-2 md:static md:flex md:flex-row md:items-center md:gap-1 md:border-0 md:bg-transparent md:p-0 md:shadow-none`}><NavLink to="/accommodation">Find accommodation</NavLink><NavLink to="/about">About</NavLink><NavLink to="/contact">Contact</NavLink>{user ? <Link className="btn btn-gold" to="/dashboard">Dashboard</Link> : <><Link className="btn btn-outline" to="/login">Log in</Link><Link className="btn btn-gold" to="/register/student">Get started</Link></>}</nav></div></header><main><Outlet /></main><Footer /></div>
+  useEffect(() => setOpen(false), [pathname])
+  return <div className="min-h-screen bg-white"><header onKeyDown={(event) => event.key === 'Escape' && setOpen(false)} className={landing ? 'absolute inset-x-0 top-4 z-40 bg-transparent' : 'relative z-40 border-b border-slate-200 bg-white'}><div className={`container flex items-center justify-between ${landing ? 'min-h-16 max-w-6xl gap-3 rounded-full border border-white/30 bg-white/95 px-4 shadow-xl backdrop-blur-md md:px-6' : 'h-20'}`}><Brand /><button type="button" className="icon-btn md:hidden" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="primary-navigation" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button><nav id="primary-navigation" aria-label="Main navigation" className={`${open ? 'flex' : 'hidden'} ${landing ? 'absolute inset-x-4 top-[4.5rem] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl' : 'absolute inset-x-0 top-20 border-b bg-white p-5'} z-30 flex-col gap-2 md:static md:flex md:flex-row md:items-center md:gap-1 md:border-0 md:bg-transparent md:p-0 md:shadow-none`}><NavLink to="/accommodation">Find accommodation</NavLink><NavLink to="/about">About</NavLink><NavLink to="/contact">Contact</NavLink>{user ? <Link className="btn btn-gold" to="/dashboard">Dashboard</Link> : <><Link className="btn btn-outline" to="/login">Log in</Link><Link className="btn btn-gold" to="/register/student">Get started</Link></>}</nav></div></header><main><Outlet /></main><Footer /></div>
 }
 export function Footer() {
   return (
@@ -22,8 +29,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-white/10 bg-navy text-white shadow-[0_24px_70px_rgba(16,31,64,.18)] sm:rounded-[2.5rem]">
         <div className="grid gap-10 px-6 py-10 sm:px-10 sm:py-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-8 lg:px-12">
           <div>
-            <Brand light />
-            <p className="mt-5 max-w-sm leading-7 text-slate-300">A better student home starts with clear choices. Discover accommodation, apply with confidence, and keep your housing journey in one place.</p>
+            <p className="max-w-sm leading-7 text-slate-300">A better student home starts with clear choices. Discover accommodation, apply with confidence, and keep your housing journey in one place.</p>
             <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200">
               <MapPin size={15} className="text-gold" /> Supporting students across TUT campuses
             </p>
@@ -74,7 +80,7 @@ export function DashboardLayout() {
   const [menu, setMenu] = useState(false)
   const [confirm, setConfirm] = useState(false)
   if (!user) return null
-  return <div className="min-h-screen bg-mist lg:grid lg:grid-cols-[270px_1fr]"><aside className={`${menu ? 'fixed' : 'hidden'} inset-y-0 left-0 z-40 w-[270px] bg-navy p-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col`}><div className="flex items-center justify-between"><Brand light /><button className="icon-btn text-white lg:hidden" aria-label="Close menu" onClick={() => setMenu(false)}><X /></button></div><nav className="mt-10 flex flex-1 flex-col gap-1">{links[user.role].map(([name, href]) => <NavLink end={href === '/dashboard'} key={href} to={href} onClick={() => setMenu(false)} className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-active' : ''}`}>{name}</NavLink>)}<NavLink to="/dashboard/notifications" className={({ isActive }) => `sidebar-link flex items-center justify-between ${isActive ? 'sidebar-active' : ''}`}><span>Notifications</span>{unread > 0 && <span className="rounded-full bg-gold px-2 text-xs font-bold text-navy">{unread}</span>}</NavLink></nav><button className="sidebar-link flex items-center gap-3" onClick={() => setConfirm(true)}><LogOut size={19} /> Log out</button></aside><div className="min-w-0"><header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b bg-white px-4 sm:px-8"><button className="icon-btn lg:hidden" aria-label="Open menu" onClick={() => setMenu(true)}><Menu /></button><div className="ml-auto flex items-center gap-2"><Link className="icon-btn relative" aria-label={`${unread} unread notifications`} to="/dashboard/notifications"><Bell />{unread > 0 && <span className="absolute right-1 top-1 size-2 rounded-full bg-red-600" />}</Link><MoonStar className="text-slate-300" aria-hidden="true" /><div className="ml-2"><p className="text-sm font-bold">{user.firstName || user.name || 'Account'}</p><p className="text-xs text-slate-500">{user.role.replace(/_/g, ' ')}</p></div></div></header><main className="p-4 sm:p-8"><Outlet /></main></div><ConfirmDialog open={confirm} title="Log out?" text="You will need to sign in again to access your dashboard." onClose={() => setConfirm(false)} onConfirm={logout} /></div>
+  return <div className="min-h-screen bg-mist lg:grid lg:grid-cols-[270px_1fr]"><aside className={`${menu ? 'fixed' : 'hidden'} inset-y-0 left-0 z-40 w-[270px] bg-navy p-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col`}>  <div className="flex items-center justify-between"><Brand /><button className="icon-btn text-white lg:hidden" aria-label="Close menu" onClick={() => setMenu(false)}><X /></button></div><nav className="mt-10 flex flex-1 flex-col gap-1">{links[user.role].map(([name, href]) => <NavLink end={href === '/dashboard'} key={href} to={href} onClick={() => setMenu(false)} className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-active' : ''}`}>{name}</NavLink>)}<NavLink to="/dashboard/notifications" className={({ isActive }) => `sidebar-link flex items-center justify-between ${isActive ? 'sidebar-active' : ''}`}><span>Notifications</span>{unread > 0 && <span className="rounded-full bg-gold px-2 text-xs font-bold text-navy">{unread}</span>}</NavLink></nav><button className="sidebar-link flex items-center gap-3" onClick={() => setConfirm(true)}><LogOut size={19} /> Log out</button></aside><div className="min-w-0"><header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b bg-white px-4 sm:px-8"><button className="icon-btn lg:hidden" aria-label="Open menu" onClick={() => setMenu(true)}><Menu /></button><div className="ml-auto flex items-center gap-2"><Link className="icon-btn relative" aria-label={`${unread} unread notifications`} to="/dashboard/notifications"><Bell />{unread > 0 && <span className="absolute right-1 top-1 size-2 rounded-full bg-red-600" />}</Link><MoonStar className="text-slate-300" aria-hidden="true" /><div className="ml-2"><p className="text-sm font-bold">{user.firstName || user.name || 'Account'}</p><p className="text-xs text-slate-500">{user.role.replace(/_/g, ' ')}</p></div></div></header><main className="p-4 sm:p-8"><Outlet /></main></div><ConfirmDialog open={confirm} title="Log out?" text="You will need to sign in again to access your dashboard." onClose={() => setConfirm(false)} onConfirm={logout} /></div>
 }
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -83,7 +89,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <video className="absolute inset-0 size-full object-cover opacity-45" src="/hero.mp4" autoPlay loop muted playsInline preload="metadata" aria-hidden="true" />
         <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-navy/95 via-navy/75 to-navy/55" />
         <div aria-hidden="true" className="auth-orbit absolute -bottom-28 -left-24 size-[28rem] rounded-full border border-white/15" />
-        <div className="relative z-10 animate-auth-enter"><Brand light /></div>
+        <div className="relative z-10 animate-auth-enter"><Brand /></div>
         <div className="relative z-10 max-w-xl animate-auth-enter [animation-delay:120ms]">
           <p className="text-sm font-bold uppercase tracking-[.25em] text-gold">Student accommodation, simplified</p>
           <h1 className="mt-5 text-4xl font-black leading-tight text-white xl:text-5xl">A safer way to find your place and feel at home.</h1>

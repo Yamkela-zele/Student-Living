@@ -6,10 +6,10 @@ export function Button({ className = '', ...props }: ButtonHTMLAttributes<HTMLBu
   return <button className={`btn ${className}`} {...props} />
 }
 export function Loader({ label = 'Loading' }: { label?: string }) {
-  return <div className="state"><LoaderCircle className="animate-spin text-gold" aria-hidden="true" /><span>{label}…</span></div>
+  return <div className="state" role="status" aria-live="polite" aria-busy="true"><LoaderCircle className="animate-spin text-gold" aria-hidden="true" /><span>{label}…</span></div>
 }
-export function ErrorBox({ message, retry }: { message: string; retry?: () => void }) {
-  return <div className="state text-red-700" role="alert"><AlertCircle aria-hidden="true" /><span>{message}</span>{retry && <Button className="btn-outline" onClick={retry}>Retry</Button>}</div>
+export function ErrorBox({ message, retry, compact = false }: { message: string; retry?: () => void; compact?: boolean }) {
+  return <div className={compact ? 'flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800' : 'state text-red-700'} role="alert"><AlertCircle aria-hidden="true" /><span>{message}</span>{retry && <Button type="button" className="btn-outline" onClick={retry}>Try again</Button>}</div>
 }
 export function EmptyState({ title = 'Nothing here yet', text = 'New items will appear here when they become available.' }: { title?: string; text?: string }) {
   return <div className="state"><Inbox className="text-gold" aria-hidden="true" /><strong>{title}</strong><p>{text}</p></div>
@@ -28,17 +28,26 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
     const key = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
       if (event.key === 'Tab' && panel.current) {
-        const focusable = [...panel.current.querySelectorAll<HTMLElement>('button,input,select,textarea,a[href]')]
+        const focusable = [...panel.current.querySelectorAll<HTMLElement>('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href], [tabindex]:not([tabindex="-1"])')]
+          .filter((element) => element.offsetParent !== null)
         const first = focusable[0], last = focusable[focusable.length - 1]
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+        if (!focusable.length) {
+          event.preventDefault()
+          panel.current.focus()
+        } else if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) {
+          event.preventDefault()
+          last?.focus()
+        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panel.current)) {
+          event.preventDefault()
+          first?.focus()
+        }
       }
     }
     document.addEventListener('keydown', key)
     return () => { document.removeEventListener('keydown', key); previous?.focus() }
   }, [open, onClose])
   if (!open) return null
-  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><div ref={panel} tabIndex={-1} className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="flex items-center justify-between gap-4"><h2 id="modal-title" className="text-xl font-bold">{title}</h2><button className="icon-btn" aria-label="Close dialog" onClick={onClose}><X /></button></div>{children}</div></div>
+  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><div ref={panel} tabIndex={-1} className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="flex items-center justify-between gap-4"><h2 id="modal-title" className="text-xl font-bold">{title}</h2><button type="button" className="icon-btn" aria-label="Close dialog" onClick={onClose}><X /></button></div>{children}</div></div>
 }
 export function ConfirmDialog({ open, title, text, onClose, onConfirm, busy }: { open: boolean; title: string; text: string; onClose: () => void; onConfirm: () => void; busy?: boolean }) {
   return <Modal open={open} onClose={onClose} title={title}><p className="my-5 text-slate-600">{text}</p><div className="flex justify-end gap-3"><Button className="btn-outline" onClick={onClose}>Go back</Button><Button className="bg-red-700 text-white hover:bg-red-800" disabled={busy} onClick={onConfirm}>{busy ? 'Working…' : 'Confirm'}</Button></div></Modal>

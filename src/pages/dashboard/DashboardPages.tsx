@@ -168,8 +168,16 @@ export function Profile({ provider = false }: { provider?: boolean }) {
 
 export function Notifications() {
   const { items, loading, error, refresh, markRead, markAll } = useNotifications()
-  return <Page title="Notifications" text="Updates about applications, bookings and your account." action={<Button className="btn-outline" onClick={() => void markAll().catch(() => undefined)}>Mark all read</Button>}>
-    {loading ? <Loader /> : error ? <ErrorBox message={error} retry={refresh} /> : !items.length ? <EmptyState title="You’re all caught up" /> : <div className="card divide-y p-0">{items.map((n) => <button onClick={() => void markRead(n.id).catch(() => undefined)} className={`block min-h-20 w-full p-5 text-left hover:bg-slate-50 ${!n.read && !n.readAt ? 'border-l-4 border-gold bg-amber-50/50' : ''}`} key={n.id}><b>{String(n.title || 'Update')}</b><p className="mt-1 text-sm text-slate-600">{String(n.message || n.text || '')}</p></button>)}</div>}
+  const unreadCount = items.filter((item) => !item.read && !item.readAt).length
+  return <Page title="Notifications" text={`${unreadCount ? `${unreadCount} unread. ` : ''}Updates about applications, bookings and your account.`} action={<Button type="button" className="btn-outline" disabled={!unreadCount || loading} onClick={() => void markAll().catch(() => undefined)}>Mark all read</Button>}>
+    {error && <ErrorBox compact message={error} retry={() => void refresh()} />}
+    {loading && !items.length ? <Loader label="Loading notifications" /> : !items.length ? error ? null : <EmptyState title="You’re all caught up" /> : <div className="card divide-y p-0">{items.map((notification) => {
+      const unread = !notification.read && !notification.readAt
+      return <button type="button" onClick={() => unread && void markRead(notification.id).catch(() => undefined)} aria-label={`${unread ? 'Mark as read: ' : ''}${String(notification.title || 'Update')}`} className={`block min-h-20 w-full p-5 text-left hover:bg-slate-50 focus-visible:relative focus-visible:z-10 ${unread ? 'border-l-4 border-gold bg-amber-50/50' : ''}`} key={notification.id}>
+        <span className="flex items-start justify-between gap-3"><b>{String(notification.title || 'Update')}</b>{unread && <span className="chip shrink-0">Unread</span>}</span>
+        <span className="mt-1 block text-sm text-slate-600">{String(notification.message || notification.text || '')}</span>
+      </button>
+    })}</div>}
   </Page>
 }
 

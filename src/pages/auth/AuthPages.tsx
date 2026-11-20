@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout, Brand } from '../../components/layout/Layout'
-import { Button } from '../../components/common/Common'
+import { Button, ErrorBox } from '../../components/common/Common'
 import { useAuth } from '../../hooks/useAuth'
 import { api, errorMessage } from '../../services/api'
 import { validateRegistration, validEmail, validPassword } from '../../utils/validators'
@@ -55,17 +55,110 @@ export function Login() {
         {error && <p className="error-banner" role="alert">{error}</p>}
         <Button className="btn-gold w-full" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>
       </form>
-      <p className="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Demo accounts are provisioned by the connected API. Ask your environment administrator for demo credentials.</p>
       <p className="mt-6 text-center text-sm text-slate-600">New here? <Link className="text-link" to="/register/student">Student registration</Link> or <Link className="text-link" to="/register/provider">provider registration</Link></p>
     </>}
   </Shell>
 }
 export function Register({ kind }: { kind: 'student'|'provider' }) {
-  const { register }=useAuth();const navigate=useNavigate();const [error,setError]=useState('');const [fieldErrors,setFieldErrors]=useState<Record<string,string[]>>({})
-  const { data: universities } = useFetch<{ universities: Entity[] }>('/universities')
-  async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();const values=Object.fromEntries(new FormData(e.currentTarget)) as Record<string,string>;const errors=validateRegistration(values,kind==='student');if(errors)return setFieldErrors(errors);try{await register(kind,values);navigate('/dashboard')}catch(err:any){setError(errorMessage(err));setFieldErrors(err.response?.data?.errors||{})}}
-  const field=(name:string,label:string,type='text')=><label className="label">{label}<input required={name!=='registrationNumber'} name={name} type={type} className="input mt-2" />{fieldErrors[name]?.map(x=><span className="field-error" key={x}>{x}</span>)}</label>
-  return <Shell title={kind==='student'?'Create your student account':'Grow with Student Living'} text={kind==='student'?'Find verified accommodation and manage your journey.':'List and manage trusted student accommodation.'}><form className="mt-7 grid gap-4 sm:grid-cols-2" onSubmit={submit}>{field('firstName','First name')}{field('lastName','Last name')}{field('email','Email','email')}{field('phone','Phone','tel')}{kind==='student'?<>{field('studentNumber','Student number')}<label className="label sm:col-span-2">University<select required name="universityId" className="input mt-2"><option value="">Select university</option>{(universities?.universities||[]).map((u)=><option key={u.id} value={u.id}>{String(u.name)}</option>)}</select></label></>:<>{field('businessName','Business name')}{field('registrationNumber','Registration number (optional)')}</>}<div className="sm:col-span-2">{field('password','Password','password')}</div>{error&&<p className="error-banner sm:col-span-2" role="alert">{error}</p>}<Button className="btn-gold sm:col-span-2">Create account</Button></form><p className="mt-5 text-center text-sm">Already registered? <Link className="text-link" to="/login">Sign in</Link></p></Shell>
+  const { register } = useAuth()
+  const navigate = useNavigate()
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [busy, setBusy] = useState(false)
+  const { data: universityData, loading: universitiesLoading, error: universitiesError, reload: reloadUniversities } =
+    useFetch<{ universities: Entity[] }>(kind === 'student' ? '/universities' : null)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (busy) return
+
+    const values = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>
+    const validationErrors = validateRegistration(values, kind === 'student')
+    if (validationErrors) {
+      setFieldErrors(validationErrors)
+      setError('Check the highlighted fields and try again.')
+      return
+    }
+
+    setFieldErrors({})
+    setError('')
+    setBusy(true)
+    try {
+      await register(kind, values)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function field(name: string, text: string, type = 'text', autoComplete?: string) {
+    const fieldErrorId = `${name}-error`
+    return <label className="label" htmlFor={name}>
+      {text}
+      <input
+        id={name}
+        required={name !== 'registrationNumber'}
+        name={name}
+        type={type}
+        autoComplete={autoComplete}
+        aria-invalid={Boolean(fieldErrors[name])}
+        aria-describedby={fieldErrors[name] ? fieldErrorId : undefined}
+        className="input mt-2"
+        disabled={busy}
+        onChange={() => {
+          setError('')
+          setFieldErrors((current) => {
+            if (!current[name]) return current
+            const next = { ...current }
+            delete next[name]
+            return next
+          })
+        }}
+      />
+      {fieldErrors[name]?.map((message) => <span className="field-error" id={fieldErrorId} key={message}>{message}</span>)}
+    </label>
+  }
+
+  const universities = universityData?.universities || []
+  const title = kind === 'student' ? 'Create your student account' : 'Grow with Student Living'
+  const description = kind === 'student'
+    ? 'Find verified accommodation and manage your journey.'
+    : 'List and manage trusted student accommodation.'
+
+  return <Shell title={title} text={description}>
+    <form className="mt-7 grid gap-4 sm:grid-cols-2" onSubmit={submit}>
+      {field('firstName', 'First name', 'text', 'given-name')}
+      {field('lastName', 'Last name', 'text', 'family-name')}
+      {field('email', 'Email', 'email', 'email')}
+      {field('phone', 'Phone', 'tel', 'tel')}
+      {kind === 'student' ? <>
+        {field('studentNumber', 'Student number')}
+        <div className="sm:col-span-2">
+          <label className="label" htmlFor="universityId">University</label>
+          {universitiesError ? <div className="mt-2"><ErrorBox compact message={universitiesError} retry={() => void reloadUniversities()} /></div> : (
+            <select id="universityId" required name="universityId" className="input mt-2" disabled={busy || universitiesLoading || !universities.length}>
+              <option value="">{universitiesLoading ? 'Loading universities…' : universities.length ? 'Select your university' : 'No universities available'}</option>
+              {universities.map((university) => <option key={university.id} value={university.id}>{String(university.name)}</option>)}
+            </select>
+          )}
+        </div>
+      </> : <>
+        {field('businessName', 'Business name')}
+        {field('registrationNumber', 'Registration number (optional)')}
+      </>}
+      <div className="sm:col-span-2">
+        {field('password', 'Password', 'password', 'new-password')}
+        <p className="mt-2 text-xs font-normal text-slate-500">Use 8+ characters, including an uppercase letter and a number.</p>
+      </div>
+      {error && <p className="error-banner sm:col-span-2" role="alert">{error}</p>}
+      <Button className="btn-gold sm:col-span-2" disabled={busy || (kind === 'student' && (universitiesLoading || universitiesError.length > 0 || !universities.length))}>
+        {busy ? 'Creating account…' : 'Create account'}
+      </Button>
+    </form>
+    <p className="mt-5 text-center text-sm">Already registered? <Link className="text-link" to="/login">Sign in</Link></p>
+  </Shell>
 }
 export function PasswordPage({ reset=false }:{reset?:boolean}) {
   const [params] = useSearchParams()
