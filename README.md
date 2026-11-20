@@ -25,6 +25,10 @@ Do not enable demo mode on a deployment intended for real users. Demo changes ar
 - `pnpm lint` — run ESLint
 - `pnpm preview` — preview the production build
 
+## Render deployment
+
+The included `render.yaml` configures this Vite app as a Render static site. Its build command explicitly installs development dependencies before type-checking, since TypeScript, Vite, and their type definitions are required during the build. If the Render service is configured manually, use `npm ci --include=dev && npm run build` as the build command and `dist` as the publish directory.
+
 ## API contract
 
 The frontend expects the REST resources described by the Student Living API: `/auth`, `/properties`, `/applications`, `/bookings`, `/reviews`, `/favourites`, `/notifications`, `/provider`, `/admin`, and `/system`. Errors should use `{ message, errors? }`; list resources should return their named collection (for example `{ properties: [] }`). The API remains the source of truth for authorization and validation.
