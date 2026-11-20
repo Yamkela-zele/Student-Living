@@ -1,7 +1,6 @@
 services:
-  - type: web
+  - type: static
     name: student-living
-    runtime: static
     buildCommand: pnpm install --frozen-lockfile && pnpm run build
     staticPublishPath: ./dist
     routes:
