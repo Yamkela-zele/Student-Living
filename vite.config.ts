@@ -12,7 +12,6 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['student-living.onrender.com'],
     proxy: {
       '/api': 'http://localhost:5000',
     },

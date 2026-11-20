@@ -63,9 +63,11 @@ The SQL editor operation is trusted administrative access. Do not expose SQL cre
 The system-admin invite, role-change and account suspension flows use [the `manage-user` Edge Function](./supabase/functions/manage-user/index.ts). Deploy it and configure the app origin:
 
 ```powershell
+npx supabase secrets set APP_ORIGIN=https://student-living.onrender.com
 npx supabase functions deploy manage-user
-npx supabase secrets set APP_ORIGIN=https://your-app.example
 ```
+
+`APP_ORIGIN` must be the deployed app's exact origin, with no trailing slash. This value is used for both Edge Function CORS and invitation redirects; using a localhost origin blocks requests from the deployed site.
 
 Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. Do not copy the service-role key into `.env` or the frontend. The function verifies the caller is an active system administrator before invoking admin Auth operations.
 
